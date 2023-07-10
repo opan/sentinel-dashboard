@@ -6,6 +6,8 @@ import (
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/sentinel-dashboard/db"
+	"github.com/sentinel-dashboard/handler"
 )
 
 type Sentinels struct {
@@ -15,6 +17,10 @@ type Sentinels struct {
 
 func main() {
 	// handler.Router()
+
+	dbConn := db.NewConn()
+	h := handler.New(dbConn)
+	h.Router()
 
 	db, err := sql.Open("sqlite3", "./sentinel.db")
 	if err != nil {

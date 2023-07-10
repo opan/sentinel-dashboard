@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sentinel-dashboard/db"
 
 	"context"
 
@@ -13,10 +14,41 @@ import (
 
 var ctx = context.Background()
 
-func Router() {
+type handler struct {
+	DB        db.DB
+	GinRouter *gin.Engine
+}
+
+type Handler interface {
+	Router()
+	registerSentinelHandler() gin.HandlerFunc
+}
+
+func (h *handler) Router() {
+	h.GinRouter.GET("/sentinels", connectSentinel)
+	h.GinRouter.POST("/sentinel/register", h.registerSentinelHandler())
+}
+
+func (h *handler) Start() {
+	h.GinRouter.Run("localhost:2134")
+}
+
+func New(dbConn db.DB) handler {
 	router := gin.Default()
-	router.GET("/sentinels", connectSentinel)
-	router.Run("localhost:2134")
+	h := handler{
+		DB:        dbConn,
+		GinRouter: router,
+	}
+
+	return h
+}
+
+func (h *handler) registerSentinelHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": "OK",
+		})
+	}
 }
 
 type Sentinel struct {
