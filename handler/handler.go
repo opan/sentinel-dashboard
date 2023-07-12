@@ -9,7 +9,7 @@ import (
 	redis "github.com/redis/go-redis/v9"
 )
 
-var ctx = context.Background()
+var redisCtx = http.ResponseWriter, r *http.Request = context.Background()
 
 type handler struct {
 	DB        db.DB

@@ -15,7 +15,7 @@ func (h *handler) registerSentinelHandler() gin.HandlerFunc {
 }
 
 func (h *handler) listMasterHandler() gin.HandlerFunc {
-	masters, err := h.Sentinel.Masters().Result()
+	masters, err := h.Sentinel.Masters(redisCtx).Result()
 
 	return func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
