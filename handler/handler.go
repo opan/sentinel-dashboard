@@ -1,15 +1,15 @@
 package handler
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sentinel-dashboard/db"
-
-	"context"
 
 	redis "github.com/redis/go-redis/v9"
 )
 
-var redisCtx = http.ResponseWriter, r *http.Request = context.Background()
+var redisCtx = context.Background()
 
 type handler struct {
 	DB        db.DB

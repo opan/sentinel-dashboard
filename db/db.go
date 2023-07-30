@@ -37,7 +37,7 @@ func (d *database) Migrate() {
 		id INTEGER NOT NULL PRIMARY KEY,
 		name TEXT NOT NULL,
 		hosts TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP;
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	`
 
 	_, err := d.dbConn.Exec(sqlQuery)

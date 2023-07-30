@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/redis/go-redis/v9"
 	"github.com/sentinel-dashboard/db"
@@ -16,8 +18,10 @@ func main() {
 	dbConn := db.New()
 	defer dbConn.Close()
 
+	fmt.Println("Run DB Migration")
 	dbConn.Migrate()
 
+	fmt.Println("Connecting to Redis Sentinel Servers")
 	s := redis.NewSentinelClient(&redis.Options{
 		Addr: ":26379",
 	})
