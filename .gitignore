@@ -1,2 +1,2 @@
-sentinels.db
+*.db
 vendor/**/*

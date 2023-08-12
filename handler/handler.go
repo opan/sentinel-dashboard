@@ -1,42 +1,36 @@
 package handler
 
 import (
-	"context"
-
 	"github.com/gin-gonic/gin"
 	"github.com/sentinel-dashboard/db"
-
-	redis "github.com/redis/go-redis/v9"
 )
 
-var redisCtx = context.Background()
+// var redisCtx = context.Background()
 
 type handler struct {
-	DB        db.DB
+	dbConn    db.DB
 	GinRouter *gin.Engine
-	Sentinel  *redis.SentinelClient
 }
 
 type Handler interface {
 	Router()
-	registerSentinelHandler() gin.HandlerFunc
 }
 
 func (h *handler) Router() {
-	h.GinRouter.GET("/sentinels", h.listMasterHandler())
 	h.GinRouter.POST("/sentinel/register", h.registerSentinelHandler())
+
+	h.GinRouter.Run(":8282")
 }
 
 func (h *handler) Start() {
 	h.GinRouter.Run("localhost:2134")
 }
 
-func New(dbConn db.DB, sentinel *redis.SentinelClient) handler {
+func New(dbConn db.DB) handler {
 	router := gin.Default()
 	h := handler{
-		DB:        dbConn,
+		dbConn:    dbConn,
 		GinRouter: router,
-		Sentinel:  sentinel,
 	}
 
 	return h

@@ -9,26 +9,22 @@ import (
 )
 
 type database struct {
-	dbConn *sql.DB
+	db *sql.DB
 }
 
 type DB interface {
+	GetConnection() *sql.DB
 	Close()
 	Migrate()
 	Drop()
 }
 
-func CreateConnection() *sql.DB {
-	db, err := sql.Open("sqlite3", "./sentinels.db")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return db
+func (d *database) GetConnection() *sql.DB {
+	return d.db
 }
 
 func (d *database) Close() {
-	d.dbConn.Close()
+	d.db.Close()
 }
 
 func (d *database) Migrate() {
@@ -37,10 +33,10 @@ func (d *database) Migrate() {
 		id INTEGER NOT NULL PRIMARY KEY,
 		name TEXT NOT NULL,
 		hosts TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
 	`
 
-	_, err := d.dbConn.Exec(sqlQuery)
+	_, err := d.db.Exec(sqlQuery)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,6 +55,6 @@ func New() DB {
 	}
 
 	return &database{
-		dbConn: db,
+		db: db,
 	}
 }
