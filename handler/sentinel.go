@@ -5,12 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sentinel-dashboard/model"
 )
-
-type Body struct {
-	Name  string
-	Hosts string
-}
 
 func (h *handler) registerSentinelHandler() gin.HandlerFunc {
 	var errMsg string
@@ -29,7 +25,7 @@ func (h *handler) registerSentinelHandler() gin.HandlerFunc {
 		}
 		defer stmt.Close()
 
-		body := Body{}
+		body := model.Sentinel{}
 
 		if err = ctx.BindJSON(&body); err != nil {
 			errMsg = fmt.Errorf("BindJSON %+v", err).Error()
