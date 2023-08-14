@@ -22,6 +22,6 @@ func main() {
 
 	fmt.Println("Starting Sentinel Manager Server")
 	h := handler.New(dbConn)
-	h.Router()
-
+	r := h.Router()
+	r.Run(":8282")
 }

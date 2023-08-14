@@ -16,10 +16,10 @@ type Handler interface {
 	Router()
 }
 
-func (h *handler) Router() {
+func (h *handler) Router() *gin.Engine {
 	h.GinRouter.POST("/sentinel/register", h.registerSentinelHandler())
 
-	h.GinRouter.Run(":8282")
+	return h.GinRouter
 }
 
 func (h *handler) Start() {
