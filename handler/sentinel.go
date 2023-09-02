@@ -49,3 +49,13 @@ func (h *handler) registerSentinelHandler() gin.HandlerFunc {
 		})
 	}
 }
+
+func (h *handler) getSentinelHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"msg":    "",
+			"data":   []model.Sentinel{},
+			"errors": []string{},
+		})
+	}
+}
