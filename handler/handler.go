@@ -17,6 +17,7 @@ type Handler interface {
 }
 
 func (h *handler) Router() *gin.Engine {
+	h.GinRouter.Use(ErrorMiddleware())
 	h.GinRouter.POST("/sentinel/register", h.registerSentinelHandler())
 
 	return h.GinRouter
@@ -34,4 +35,22 @@ func New(dbConn db.DB) handler {
 	}
 
 	return h
+}
+
+func ErrorMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Next()
+
+		var errMsgs []string
+
+		for _, err := range ctx.Errors {
+			errMsgs = append(errMsgs, err.Error())
+		}
+
+		if len(errMsgs) > 0 {
+			ctx.JSON(-1, gin.H{
+				"errors": errMsgs,
+			})
+		}
+	}
 }
