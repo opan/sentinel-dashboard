@@ -8,7 +8,7 @@ import (
 	"github.com/sentinel-dashboard/model"
 )
 
-func (h *handler) registerSentinelHandler() gin.HandlerFunc {
+func (h *handler) RegisterSentinelHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		db := h.dbConn.GetConnection()
 		tx, err := db.Begin()
@@ -50,11 +50,39 @@ func (h *handler) registerSentinelHandler() gin.HandlerFunc {
 	}
 }
 
-func (h *handler) getSentinelHandler() gin.HandlerFunc {
+func (h *handler) GetSentinelHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		db := h.dbConn.GetConnection()
+
+		rows, err := db.Query("SELECT * FROM sentinels WHERE id = ?")
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Query: %w", err))
+			return
+		}
+
+		defer rows.Close()
+
+		var results []model.Sentinel
+		for rows.Next() {
+			var r model.Sentinel
+			err = rows.Scan(&r.ID, &r.Name, &r.Hosts, &r.CreatedAt)
+			if err != nil {
+				ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("rows.Scan: %w", err))
+				return
+			}
+
+			results = append(results, r)
+		}
+
+		err = rows.Err()
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
 		ctx.JSON(http.StatusOK, gin.H{
 			"msg":    "",
-			"data":   []model.Sentinel{},
+			"data":   results,
 			"errors": []string{},
 		})
 	}

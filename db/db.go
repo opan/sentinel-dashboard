@@ -48,7 +48,7 @@ func (d *database) Drop() {
 
 func New() DB {
 	driver := "sqlite3"
-	dbFile := "./sentinels.db"
+	dbFile := os.Getenv("DB_FILE_NAME")
 	db, err := sql.Open(driver, dbFile)
 	if err != nil {
 		log.Fatal(err)

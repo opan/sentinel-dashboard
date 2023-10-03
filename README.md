@@ -24,3 +24,10 @@ curl -X POST http://localhost:8282/sentinel/register  \
    -H "Content-Type: application/json" \
    -d '{"name": "test-sentinel", "hosts": "10.218.123.41:26379,10.218.123.42:26379,10.218.123.43:26379"}' 
 ```
+
+2. /sentinel - GET
+
+```
+curl -X GET http://localhost:8282/sentinel \
+   -H "Content-Type: application/json"
+```
