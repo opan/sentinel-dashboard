@@ -46,10 +46,9 @@ func (d *database) Drop() {
 	os.Remove("./sentinel.db")
 }
 
-func New() DB {
+func New(dbName string) DB {
 	driver := "sqlite3"
-	dbFile := os.Getenv("DB_FILE_NAME")
-	db, err := sql.Open(driver, dbFile)
+	db, err := sql.Open(driver, dbName)
 	if err != nil {
 		log.Fatal(err)
 	}

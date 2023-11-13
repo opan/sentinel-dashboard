@@ -7,15 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sentinel-dashboard/db"
 	"github.com/sentinel-dashboard/handler"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_registerSentinelHandler(t *testing.T) {
-	t.Setenv("DB_FILE_NAME", "./sentinel_test.db")
-	dbConn := db.New()
+	dbConn := setupTest()
 	defer dbConn.Close()
-	dbConn.Migrate()
 
 	reqBody := []byte(`{
 		"name": "sentinel-test",
@@ -31,6 +29,6 @@ func Test_registerSentinelHandler(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	respData, _ := io.ReadAll(w.Body)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, `{"errors":[],"msg":"Sentinel successfully register"}`, respData)
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, `{"errors":[],"msg":"Sentinel successfully registered"}`, string(respData))
 }
