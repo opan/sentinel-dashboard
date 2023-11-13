@@ -43,7 +43,7 @@ func (d *database) Migrate() {
 }
 
 func (d *database) Drop() {
-	os.Remove("./sentinel.db")
+	os.Remove(os.Getenv("DB_FILE_NAME"))
 }
 
 func New(dbName string) DB {
