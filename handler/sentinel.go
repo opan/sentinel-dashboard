@@ -53,10 +53,17 @@ func (h *handler) RegisterSentinelHandler() gin.HandlerFunc {
 func (h *handler) GetSentinelHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		db := h.dbConn.GetConnection()
+		id := ctx.Param("id")
 
-		rows, err := db.Query("SELECT * FROM sentinels WHERE id = ?")
+		stmt, err := db.Prepare("SELECT * FROM sentinels WHERE id = ?")
 		if err != nil {
-			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Query: %w", err))
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Prepare: %w", err))
+		}
+		defer stmt.Close()
+
+		rows, err := stmt.Query(id)
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("stmt.Query: %w", err))
 			return
 		}
 

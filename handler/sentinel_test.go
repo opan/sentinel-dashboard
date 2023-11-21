@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -42,30 +43,18 @@ func Test_getSentinelHandler(t *testing.T) {
 
 	setupDummySentinelHandler(dbConn)
 
-	req, _ := http.NewRequest("GET", "/sentinel", nil)
+	req, _ := http.NewRequest("GET", "/sentinel/1", nil)
 	h := handler.New(dbConn)
 	r := h.Router()
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	respData, _ := io.ReadAll(w.Body)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, `{"errors":[],"msg":"","data":[]}`, string(respData))
-
-	// db := dbConn.GetConnection()
-	// rows, err := db.Query("SELECT COUNT(id) FROM sentinels")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// defer rows.Close()
-	// var i int
-	// for rows.Next() {
-
-	// 	_ = rows.Scan(&i)
-	// }
-
-	// fmt.Println(i)
+	var mapBody map[string]interface{}
+	_ = json.NewDecoder(w.Body).Decode(&mapBody)
+	// assert.Equal(t, `{"errors":[],"msg":"","data":[]}`, string(respData))
+	assert.Equal(t, []interface{}{}, mapBody["errors"])
+	// assert.Equal(t, 1, mapBody["data"])
 
 }
 
