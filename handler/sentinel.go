@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 
@@ -54,17 +55,33 @@ func (h *handler) GetSentinelHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		db := h.dbConn.GetConnection()
 		id := ctx.Param("id")
+		var stmtStr string
+		var rows *sql.Rows
 
-		stmt, err := db.Prepare("SELECT * FROM sentinels WHERE id = ?")
+		if id != "" {
+			stmtStr = "SELECT * FROM sentinels WHERE id = ?"
+		} else {
+			stmtStr = "SELECT * FROM sentinels ORDER BY id"
+		}
+
+		stmt, err := db.Prepare(stmtStr)
 		if err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Prepare: %w", err))
 		}
 		defer stmt.Close()
 
-		rows, err := stmt.Query(id)
-		if err != nil {
-			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("stmt.Query: %w", err))
-			return
+		if id != "" {
+			rows, err = stmt.Query(id)
+			if err != nil {
+				ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("stmt.Query: %w", err))
+				return
+			}
+		} else {
+			rows, err = stmt.Query()
+			if err != nil {
+				ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("stmt.Query: %w", err))
+				return
+			}
 		}
 
 		defer rows.Close()
