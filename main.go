@@ -31,5 +31,5 @@ func main() {
 	fmt.Println("Starting Sentinel Manager Server")
 	h := handler.New(dbConn)
 	r := h.Router()
-	r.Run(":8282")
+	r.Run(":" + os.Getenv("BACKEND_PORT"))
 }

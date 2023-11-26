@@ -25,10 +25,6 @@ func (h *handler) Router() *gin.Engine {
 	return h.GinRouter
 }
 
-func (h *handler) Start() {
-	h.GinRouter.Run("localhost:2134")
-}
-
 func New(dbConn db.DB) handler {
 	router := gin.Default()
 	h := handler{

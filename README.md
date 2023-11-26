@@ -13,7 +13,9 @@ docker-exec -it <sentinel-01/redis-01> /bin/bash
 
 ### Development
 
-Ensure docker-compose is up and running, then run `make dev-run`
+Ensure docker-compose is up and running, then run `make dev-run` to start backend server.
+
+To start frontend server, go into `ui/sentinel-manager-ui` directory and run `npm run dev`.
 
 #### Manual cURL Testing
 
