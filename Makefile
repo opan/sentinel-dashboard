@@ -5,3 +5,7 @@ dev-run:
 
 test:
 	go test ./...
+
+
+dev-ui-run:
+	npm run dev
