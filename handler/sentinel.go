@@ -6,19 +6,20 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/sentinel-dashboard/model"
 )
 
 func (h *handler) RegisterSentinelHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		db := h.dbConn.GetConnection()
-		tx, err := db.Begin()
+		dbx := h.dbConn.GetConnection()
+		tx, err := dbx.Beginx()
 		if err != nil {
-			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Begin: %w", err))
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Beginx: %w", err))
 			return
 		}
 
-		stmt, err := tx.Prepare("INSERT INTO sentinels (name, hosts) VALUES (?, ?)")
+		stmt, err := tx.Preparex("INSERT INTO sentinels (name, hosts) VALUES (?, ?)")
 		if err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Prepare: %w", err))
 			return
@@ -53,10 +54,10 @@ func (h *handler) RegisterSentinelHandler() gin.HandlerFunc {
 
 func (h *handler) GetSentinelHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		db := h.dbConn.GetConnection()
+		dbx := h.dbConn.GetConnection()
 		id := ctx.Param("id")
 		var stmtStr string
-		var rows *sql.Rows
+		var rows *sqlx.Rows
 
 		if id != "" {
 			stmtStr = "SELECT * FROM sentinels WHERE id = ?"
@@ -64,20 +65,20 @@ func (h *handler) GetSentinelHandler() gin.HandlerFunc {
 			stmtStr = "SELECT * FROM sentinels ORDER BY id"
 		}
 
-		stmt, err := db.Prepare(stmtStr)
+		stmt, err := dbx.Preparex(stmtStr)
 		if err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Prepare: %w", err))
 		}
 		defer stmt.Close()
 
 		if id != "" {
-			rows, err = stmt.Query(id)
+			rows, err = stmt.Queryx(id)
 			if err != nil {
 				ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("stmt.Query: %w", err))
 				return
 			}
 		} else {
-			rows, err = stmt.Query()
+			rows, err = stmt.Queryx()
 			if err != nil {
 				ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("stmt.Query: %w", err))
 				return
@@ -89,7 +90,7 @@ func (h *handler) GetSentinelHandler() gin.HandlerFunc {
 		var results []model.Sentinel
 		for rows.Next() {
 			var r model.Sentinel
-			err = rows.Scan(&r.ID, &r.Name, &r.Hosts, &r.CreatedAt)
+			err = rows.StructScan(&r)
 			if err != nil {
 				ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("rows.Scan: %w", err))
 				return
@@ -109,5 +110,57 @@ func (h *handler) GetSentinelHandler() gin.HandlerFunc {
 			"data":   results,
 			"errors": []string{},
 		})
+	}
+}
+
+func (h *handler) UpdateSentinelHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		dbx := h.dbConn.GetConnection()
+		id := ctx.Param("id")
+
+		qs, err := dbx.Preparex("SELECT * FROM sentinels WHERE id = ?")
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Prepare: %w", err))
+		}
+		defer qs.Close()
+
+		var s model.Sentinel
+		err = qs.QueryRowx(id).StructScan(&s)
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusOK, gin.H{
+				"msg":    fmt.Sprintf("No record found with ID: %s", id),
+				"data":   nil,
+				"errors": []string{},
+			})
+			return
+		}
+
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("rows.StructScan: %w", err))
+			return
+		}
+
+		// if err != nil {
+		// 	ctx.AbortWithError(http.StatusBadRequest, err)
+		// 	return
+		// }
+
+		ctx.JSON(http.StatusOK, gin.H{
+			"msg":    "Record has been successfully updated",
+			"data":   s,
+			"errors": []string{},
+		})
+
+		// formUpdate := model.Sentinel{}
+		// if err = ctx.BindJSON(&formUpdate); err != nil {
+		// 	ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("BindJSON: %w", err))
+		// 	return
+		// }
+
+		// tx, err := dbx.Begin()
+		// if err != nil {
+		// 	ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.begin: %w", err))
+		// 	return
+		// }
 	}
 }

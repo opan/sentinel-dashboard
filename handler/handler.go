@@ -21,6 +21,7 @@ func (h *handler) Router() *gin.Engine {
 	h.GinRouter.POST("/sentinel/register", h.RegisterSentinelHandler())
 	h.GinRouter.GET("/sentinel/:id", h.GetSentinelHandler())
 	h.GinRouter.GET("/sentinel", h.GetSentinelHandler())
+	h.GinRouter.PATCH("/sentinel/:id", h.UpdateSentinelHandler())
 
 	return h.GinRouter
 }

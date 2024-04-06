@@ -19,7 +19,7 @@ To start frontend server, go into `ui/sentinel-manager-ui` directory and run `np
 
 #### Manual cURL Testing
 
-1. /sentinel/register - POST
+1. `/sentinel/register` - POST
 
 ```
 curl -X POST http://localhost:8282/sentinel/register  \
@@ -27,17 +27,29 @@ curl -X POST http://localhost:8282/sentinel/register  \
    -d '{"name": "test-sentinel", "hosts": "10.218.123.41:26379,10.218.123.42:26379,10.218.123.43:26379"}' 
 ```
 
-2. /sentinel - GET (all)
+2. `/sentinel` - GET (all)
 
 ```
 curl -X GET http://localhost:8282/sentinel \
    -H "Content-Type: application/json"
 ```
 
-3. /sentinel/<id>
+3. `/sentinel/<id>` - GET specific sentinel
 
 ```
 curl -X GET http://localhost:8282/sentinel/<id> \
    -H "Content-Type: application/json"
 
 ```
+
+4. `/sentinel/<id>` - PATCH sentinel record
+
+```
+curl -X PATCH http://localhost:8282/sentinel/<id> \
+   -H "Content-Type: application/json"
+
+```
+
+### Misc
+
+- Referrence for admin page style

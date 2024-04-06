@@ -1,25 +1,26 @@
 package db
 
 import (
-	"database/sql"
 	"log"
 	"os"
+
+	"github.com/jmoiron/sqlx"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type database struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 type DB interface {
-	GetConnection() *sql.DB
+	GetConnection() *sqlx.DB
 	Close()
 	Migrate()
 	Drop()
 }
 
-func (d *database) GetConnection() *sql.DB {
+func (d *database) GetConnection() *sqlx.DB {
 	return d.db
 }
 
@@ -48,7 +49,7 @@ func (d *database) Drop() {
 
 func New(dbName string) DB {
 	driver := "sqlite3"
-	db, err := sql.Open(driver, dbName)
+	db, err := sqlx.Open(driver, dbName)
 	if err != nil {
 		log.Fatal(err)
 	}
