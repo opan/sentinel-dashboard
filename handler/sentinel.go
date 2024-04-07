@@ -19,7 +19,7 @@ func (h *handler) RegisterSentinelHandler() gin.HandlerFunc {
 			return
 		}
 
-		stmt, err := tx.Preparex("INSERT INTO sentinels (name, hosts) VALUES (?, ?)")
+		stmt, err := tx.Preparex("INSERT INTO sentinels (name, hosts) VALUES ($1, $2)")
 		if err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Prepare: %w", err))
 			return
@@ -33,9 +33,17 @@ func (h *handler) RegisterSentinelHandler() gin.HandlerFunc {
 			return
 		}
 
-		_, err = stmt.Exec(body.Name, body.Hosts)
+		res, err := stmt.Exec(body.Name, body.Hosts)
 		if err != nil {
+			tx.Rollback()
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("stmt.Exec: %w", err))
+			return
+		}
+
+		lastID, err := res.LastInsertId()
+		if err != nil {
+			tx.Rollback()
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("res.LastInsertId: %w", err))
 			return
 		}
 
@@ -47,6 +55,7 @@ func (h *handler) RegisterSentinelHandler() gin.HandlerFunc {
 
 		ctx.JSON(http.StatusCreated, gin.H{
 			"msg":    "Sentinel successfully registered",
+			"id":     lastID,
 			"errors": []string{},
 		})
 	}
@@ -140,27 +149,49 @@ func (h *handler) UpdateSentinelHandler() gin.HandlerFunc {
 			return
 		}
 
-		// if err != nil {
-		// 	ctx.AbortWithError(http.StatusBadRequest, err)
-		// 	return
-		// }
+		rb := model.Sentinel{}
+		if err = ctx.BindJSON(&rb); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("BindJSON: %w", err))
+			return
+		}
+
+		tx, err := dbx.Beginx()
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("dbx.Begin: %w", err))
+			return
+		}
+
+		pu, err := dbx.Preparex("UPDATE sentinels SET name = $2, hosts = $3 WHERE id = $1")
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("dbx.Preparex: %w", err))
+			return
+		}
+		defer pu.Close()
+
+		qr, err := pu.Exec(id, rb.Name, rb.Hosts)
+		if err != nil {
+			tx.Rollback()
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("stmt.Exec: %w", err))
+			return
+		}
+
+		lastID, err := qr.LastInsertId()
+		if err != nil {
+			tx.Rollback()
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("LastInsertId: %w", err))
+			return
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("tx.Exec: %w", err))
+			return
+		}
 
 		ctx.JSON(http.StatusOK, gin.H{
 			"msg":    "Record has been successfully updated",
-			"data":   s,
+			"id":     lastID,
 			"errors": []string{},
 		})
-
-		// formUpdate := model.Sentinel{}
-		// if err = ctx.BindJSON(&formUpdate); err != nil {
-		// 	ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("BindJSON: %w", err))
-		// 	return
-		// }
-
-		// tx, err := dbx.Begin()
-		// if err != nil {
-		// 	ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.begin: %w", err))
-		// 	return
-		// }
 	}
 }
