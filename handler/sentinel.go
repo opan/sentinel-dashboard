@@ -19,7 +19,7 @@ func (h *handler) RegisterSentinelHandler() gin.HandlerFunc {
 			return
 		}
 
-		stmt, err := tx.Preparex("INSERT INTO sentinels (name, hosts) VALUES ($1, $2)")
+		stmt, err := tx.Preparex("INSERT INTO sentinels (name, hosts) VALUES (?, ?)")
 		if err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Prepare: %w", err))
 			return
@@ -127,14 +127,8 @@ func (h *handler) UpdateSentinelHandler() gin.HandlerFunc {
 		dbx := h.dbConn.GetConnection()
 		id := ctx.Param("id")
 
-		qs, err := dbx.Preparex("SELECT * FROM sentinels WHERE id = ?")
-		if err != nil {
-			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("db.Prepare: %w", err))
-		}
-		defer qs.Close()
-
 		var s model.Sentinel
-		err = qs.QueryRowx(id).StructScan(&s)
+		err := dbx.Get(&s, "SELECT * FROM sentinels WHERE id = ?", id)
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusOK, gin.H{
 				"msg":    fmt.Sprintf("No record found with ID: %s", id),
@@ -150,7 +144,7 @@ func (h *handler) UpdateSentinelHandler() gin.HandlerFunc {
 		}
 
 		rb := model.Sentinel{}
-		if err = ctx.BindJSON(&rb); err != nil {
+		if err := ctx.BindJSON(&rb); err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("BindJSON: %w", err))
 			return
 		}
@@ -160,25 +154,11 @@ func (h *handler) UpdateSentinelHandler() gin.HandlerFunc {
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("dbx.Begin: %w", err))
 			return
 		}
+		defer tx.Rollback()
 
-		pu, err := dbx.Preparex("UPDATE sentinels SET name = $2, hosts = $3 WHERE id = $1")
+		_, err = tx.Exec("UPDATE sentinels SET name = ?, hosts = ? WHERE id = ?", rb.Name, rb.Hosts, id)
 		if err != nil {
-			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("dbx.Preparex: %w", err))
-			return
-		}
-		defer pu.Close()
-
-		qr, err := pu.Exec(id, rb.Name, rb.Hosts)
-		if err != nil {
-			tx.Rollback()
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("stmt.Exec: %w", err))
-			return
-		}
-
-		lastID, err := qr.LastInsertId()
-		if err != nil {
-			tx.Rollback()
-			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("LastInsertId: %w", err))
 			return
 		}
 
@@ -190,7 +170,6 @@ func (h *handler) UpdateSentinelHandler() gin.HandlerFunc {
 
 		ctx.JSON(http.StatusOK, gin.H{
 			"msg":    "Record has been successfully updated",
-			"id":     lastID,
 			"errors": []string{},
 		})
 	}
