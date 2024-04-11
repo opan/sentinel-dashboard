@@ -130,7 +130,7 @@ func (h *handler) UpdateSentinelHandler() gin.HandlerFunc {
 			return
 		}
 
-		ctx.JSON(http.StatusNoContent, gin.H{
+		ctx.JSON(http.StatusOK, gin.H{
 			"msg":         "Record has been successfully updated",
 			"updated_row": ur,
 			"errors":      []string{},

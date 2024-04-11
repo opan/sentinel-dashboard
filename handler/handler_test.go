@@ -20,7 +20,6 @@ func setupTest() db.DB {
 }
 
 func makeRequest(dbConn db.DB, method, url string, body interface{}) *httptest.ResponseRecorder {
-
 	reqBody, _ := json.Marshal(body)
 	req, _ := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	req.Header.Add("Content-Type", "application/json")
