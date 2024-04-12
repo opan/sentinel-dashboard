@@ -71,7 +71,6 @@ func (h *handler) GetSentinelHandler() gin.HandlerFunc {
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{
-			"msg":    "",
 			"data":   results,
 			"errors": []string{},
 		})
