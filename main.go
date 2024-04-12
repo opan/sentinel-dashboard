@@ -16,11 +16,6 @@ import (
 	"github.com/sentinel-dashboard/handler"
 )
 
-type Sentinels struct {
-	ID   int
-	Name string
-}
-
 func main() {
 	ctx := context.TODO()
 
@@ -65,5 +60,5 @@ func main() {
 		log.Fatal("Server forced to shutdown: ", err)
 	}
 
-	log.Println("Server gracefully shutdown. Exiting")
+	log.Println("Server exiting. Byebye!")
 }
