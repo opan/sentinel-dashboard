@@ -1,4 +1,4 @@
-module github.com/sentinel-dashboard
+module github.com/sentinel-manager
 
 go 1.19
 

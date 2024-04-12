@@ -8,8 +8,8 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/sentinel-dashboard/db"
-	"github.com/sentinel-dashboard/handler"
+	"github.com/sentinel-manager/db"
+	"github.com/sentinel-manager/handler"
 )
 
 func setupTest() db.DB {

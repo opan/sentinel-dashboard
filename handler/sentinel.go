@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sentinel-dashboard/model"
+	"github.com/sentinel-manager/model"
 )
 
 func (h *handler) CreateSentinelHandler() gin.HandlerFunc {
@@ -86,7 +86,7 @@ func (h *handler) UpdateSentinelHandler() gin.HandlerFunc {
 		var s model.Sentinel
 		err := dbx.Get(&s, "SELECT * FROM sentinels WHERE id = ?", id)
 		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotModified, gin.H{
+			ctx.JSON(http.StatusNotFound, gin.H{
 				"msg":    fmt.Sprintf("No record found with ID: %s", id),
 				"data":   nil,
 				"errors": []string{},

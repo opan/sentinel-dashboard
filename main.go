@@ -12,8 +12,8 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/sentinel-dashboard/db"
-	"github.com/sentinel-dashboard/handler"
+	"github.com/sentinel-manager/db"
+	"github.com/sentinel-manager/handler"
 )
 
 func main() {

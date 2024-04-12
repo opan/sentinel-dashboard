@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sentinel-dashboard/db"
+	"github.com/sentinel-manager/db"
 )
 
 // var redisCtx = context.Background()
@@ -22,6 +22,8 @@ func (h *handler) Router() *gin.Engine {
 	h.GinRouter.GET("/sentinel/:id", h.GetSentinelHandler())
 	h.GinRouter.GET("/sentinel", h.GetSentinelHandler())
 	h.GinRouter.PATCH("/sentinel/:id", h.UpdateSentinelHandler())
+
+	h.GinRouter.GET("/cluster/:id/info", h.ClusterInfoHandler())
 
 	return h.GinRouter
 }

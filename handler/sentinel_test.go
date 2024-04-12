@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/sentinel-dashboard/db"
-	"github.com/sentinel-dashboard/model"
+	"github.com/sentinel-manager/db"
+	"github.com/sentinel-manager/model"
 	"github.com/stretchr/testify/assert"
 )
 
