@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mitchellh/mapstructure"
 	"github.com/redis/go-redis/v9"
 	"github.com/sentinel-manager/model"
 )
@@ -61,23 +62,45 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 		}
 
 		if okHost == "" {
-			ctx.JSON(http.StatusServiceUnavailable, fmt.Errorf("No successfull ping to all available sentinel hosts: %s", s.Hosts))
+			ctx.JSON(http.StatusInternalServerError, fmt.Errorf("No successfull ping to all available sentinel hosts: %s", s.Hosts))
 			return
 		}
 
-		cmd := redis.NewCmd(ctx, "info")
+		var masters []model.SentinelMaster
+
+		cmd := redis.NewMapStringInterfaceSliceCmd(ctx, "sentinel", "masters")
 
 		err = sentinel.Process(ctx, cmd)
 		if err != nil {
-			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("error processing command: %w", err))
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("error when executing command: %w", err))
 			return
 		}
-		defer sentinel.Close()
 
-		fmt.Println(cmd.Result())
+		cr, err := cmd.Result()
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("error when fetching the result: %w", err))
+			return
+		}
+
+		for _, v := range cr {
+			var master model.SentinelMaster
+
+			decodeConfig := &mapstructure.DecoderConfig{
+				WeaklyTypedInput: true,
+				Result:           &master,
+			}
+
+			decoder, err := mapstructure.NewDecoder(decodeConfig)
+			if err != nil {
+				panic(err)
+			}
+
+			decoder.Decode(v)
+			masters = append(masters, master)
+		}
 
 		ctx.JSON(http.StatusOK, gin.H{
-			"data":   "",
+			"data":   masters,
 			"errors": []string{},
 		})
 	}
