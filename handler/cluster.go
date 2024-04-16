@@ -75,6 +75,7 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("error when executing command: %w", err))
 			return
 		}
+		defer sentinel.Close()
 
 		cr, err := cmd.Result()
 		if err != nil {
@@ -101,6 +102,85 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 
 		ctx.JSON(http.StatusOK, gin.H{
 			"data":   masters,
+			"errors": []string{},
+		})
+	}
+}
+
+func (h *handler) ClusterRemoveMasterHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		dbx := h.dbConn.GetConnection()
+		id := ctx.Param("id")
+		masterName := ctx.Param("master_name")
+
+		if id == "" || masterName == "" {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("one or more required params missing"))
+			return
+		}
+
+		var s model.Sentinel
+
+		err := dbx.Get(&s, "SELECT * FROM sentinels WHERE id = ?", id)
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"msg":    fmt.Sprintf("No record found with ID: %s", id),
+				"data":   nil,
+				"errors": []string{},
+			})
+			return
+		}
+
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("error get record: %w", err))
+			return
+		}
+
+		// set 5s timeout when executing
+		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
+		var sentinel *redis.SentinelClient
+		var okHost string
+
+		// parse sentinel hosts
+		// use the first healthy sentinel host found
+		// otherwise, raise error if not found
+		sh := strings.Split(s.Hosts, ",")
+		for _, v := range sh {
+			sentinel = redis.NewSentinelClient(&redis.Options{
+				Addr: v,
+			})
+
+			ping, err := sentinel.Ping(ctxTimeout).Result()
+			if err == nil && ping == "PONG" {
+				okHost = v
+				break
+			} else {
+				sentinel.Close()
+			}
+		}
+
+		if okHost == "" {
+			ctx.JSON(http.StatusInternalServerError, fmt.Errorf("No successfull ping to all available sentinel hosts: %s", s.Hosts))
+			return
+		}
+
+		cmd := sentinel.Remove(ctx, masterName)
+
+		r, err := cmd.Result()
+
+		if redis.HasErrorPrefix(err, "No such master with that name") {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		if err != nil || r != "OK" {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("error when fetch the cmd result: %w", err))
+			return
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{
+			"msg":    fmt.Sprintf("Master %s has been removed", masterName),
 			"errors": []string{},
 		})
 	}
