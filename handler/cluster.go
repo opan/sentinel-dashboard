@@ -17,8 +17,6 @@ import (
 func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
-		defer dbx.Close()
-
 		id := ctx.Param("id")
 
 		var s model.Sentinel
@@ -112,7 +110,6 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 func (h *handler) ClusterRemoveMasterHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
-		defer dbx.Close()
 		id := ctx.Param("id")
 		masterName := ctx.Param("master_name")
 
