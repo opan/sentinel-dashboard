@@ -14,6 +14,14 @@ import (
 	"github.com/sentinel-manager/model"
 )
 
+type ErrNoHealthySentinel struct {
+	Msg string
+}
+
+func (e *ErrNoHealthySentinel) Error() string {
+	return fmt.Sprintf("No healthy redis sentinel. Hosts: %s", e.Msg)
+}
+
 func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
@@ -40,29 +48,9 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		var sentinel *redis.SentinelClient
-		var okHost string
-
-		// parse sentinel hosts
-		// use the first healthy sentinel host found
-		// otherwise, raise error if not found
-		sh := strings.Split(s.Hosts, ",")
-		for _, v := range sh {
-			sentinel = redis.NewSentinelClient(&redis.Options{
-				Addr: v,
-			})
-
-			ping, err := sentinel.Ping(ctxTimeout).Result()
-			if err == nil && ping == "PONG" {
-				okHost = v
-				break
-			} else {
-				sentinel.Close()
-			}
-		}
-
-		if okHost == "" {
-			ctx.JSON(http.StatusInternalServerError, fmt.Errorf("No successfull ping to all available sentinel hosts: %s", s.Hosts))
+		sentinel, err := getSentinel(ctxTimeout, s.Hosts)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, fmt.Errorf("No successfull ping to all available sentinel hosts: %w", err))
 			return
 		}
 
@@ -139,34 +127,13 @@ func (h *handler) ClusterRemoveMasterHandler() gin.HandlerFunc {
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		var sentinel *redis.SentinelClient
-		var okHost string
-
-		// parse sentinel hosts
-		// use the first healthy sentinel host found
-		// otherwise, raise error if not found
-		sh := strings.Split(s.Hosts, ",")
-		for _, v := range sh {
-			sentinel = redis.NewSentinelClient(&redis.Options{
-				Addr: v,
-			})
-
-			ping, err := sentinel.Ping(ctxTimeout).Result()
-			if err == nil && ping == "PONG" {
-				okHost = v
-				break
-			} else {
-				sentinel.Close()
-			}
-		}
-
-		if okHost == "" {
-			ctx.JSON(http.StatusInternalServerError, fmt.Errorf("No successfull ping to all available sentinel hosts: %s", s.Hosts))
+		sentinel, err := getSentinel(ctxTimeout, s.Hosts)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, fmt.Errorf("No successfull ping to all available sentinel hosts: %w", err))
 			return
 		}
 
 		cmd := sentinel.Remove(ctx, masterName)
-
 		r, err := cmd.Result()
 
 		if redis.HasErrorPrefix(err, "No such master with that name") {
@@ -184,4 +151,34 @@ func (h *handler) ClusterRemoveMasterHandler() gin.HandlerFunc {
 			"errors": []string{},
 		})
 	}
+}
+
+func getSentinel(ctx context.Context, hosts string) (*redis.SentinelClient, error) {
+	var sentinel *redis.SentinelClient
+	var okHost string
+	var pingErr error
+
+	// parse sentinel hosts
+	// use the first healthy sentinel host found
+	// otherwise, raise error if not found
+	sh := strings.Split(hosts, ",")
+	for _, v := range sh {
+		sentinel = redis.NewSentinelClient(&redis.Options{
+			Addr: v,
+		})
+
+		ping, err := sentinel.Ping(ctx).Result()
+		if err == nil && ping == "PONG" {
+			okHost = v
+			break
+		} else {
+			sentinel.Close()
+		}
+	}
+
+	if okHost == "" {
+		pingErr = &ErrNoHealthySentinel{Msg: hosts}
+	}
+
+	return sentinel, pingErr
 }
