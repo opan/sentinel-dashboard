@@ -30,7 +30,7 @@ services:
     environment:
       - REDIS_MASTER_HOST=redis
     ports:
-      - '26379:26379'
+      - '36379:26379'
     networks:
       - app-tier
     container_name: sentinel-02
@@ -40,7 +40,7 @@ services:
     environment:
       - REDIS_MASTER_HOST=redis
     ports:
-      - '26379:26379'
+      - '46379:26379'
     networks:
       - app-tier
     container_name: sentinel-03
