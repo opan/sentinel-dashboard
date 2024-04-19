@@ -35,6 +35,19 @@ func (d *database) Migrate() {
 		name TEXT NOT NULL,
 		hosts TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+
+		CREATE TABLE IF NOT EXISTS sentinel_masters (
+			id INTEGER NOT NULL PRIMARY KEY,
+			sentinel_id INTEGER NOT NULL,
+			name TEXT NOT NULL,
+			ip TEXT NOT NULL,
+			port TEXT NOT NULL,
+			quorum TEXT NOT NULL,
+			options TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (sentinel_id)
+				REFERENCES sentinels
+		)
 	`
 
 	_, err := d.db.Exec(sqlQuery)

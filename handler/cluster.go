@@ -99,7 +99,6 @@ func (h *handler) ClusterAddMasterHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
 		id := ctx.Param("id")
-		masterName := ctx.Param("master_name")
 
 		tx, err := dbx.Beginx()
 		if err != nil {
@@ -127,39 +126,80 @@ func (h *handler) ClusterAddMasterHandler() gin.HandlerFunc {
 		}
 
 		var pingErr error
-		sh := strings.Split(",", s.Hosts)
+		sh := strings.Split(s.Hosts, ",")
 
+		// check if any of sentinel hosts failed at ping, cancel monitor process
 		for _, h := range sh {
-			var sentinel *redis.SentinelClient
-			sentinel = redis.NewSentinelClient(&redis.Options{
+			sentinel := redis.NewSentinelClient(&redis.Options{
 				Addr: h,
 			})
 
 			pong, err := sentinel.Ping(ctx).Result()
 			if err != nil && pong != "PONG" {
-				pingErr = &ErrNoHealthySentinel{Msg: h}
+				pingErr = &ErrNoHealthySentinel{Msg: fmt.Sprintf("err: %s", err)}
 				break
 			}
 		}
 
 		if pingErr != nil {
-			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("Failed ping for all sentinel hosts: %w", pingErr))
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("no successfull ping for all sentinel hosts: %w", pingErr))
 			return
 		}
 
-		// // register the master to each sentinel hosts
-		// for _, h := range sh {
-		// 	var sentinel *redis.SentinelClient
-		// 	sentinel = redis.NewSentinelClient(&redis.Options{
-		// 		Addr: h,
-		// 	})
+		var body model.SentinelMaster
+		if err = ctx.BindJSON(&body); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
 
-		// 	cmd := sentinel.Monitor(ctx, masterName)
+		// register master for each sentinel
+		for _, h := range sh {
+			sentinel := redis.NewSentinelClient(&redis.Options{
+				Addr: h,
+			})
 
-		// }
+			monCmd := redis.NewStringCmd(ctx, "sentinel", "monitor", body.MasterName, body.IP, body.Port, body.Quorum)
+
+			err = sentinel.Process(ctx, monCmd)
+			if err != nil {
+				break
+			}
+
+			// result is returning "OK" for good response
+			_, err := monCmd.Result()
+			if err != nil {
+				break
+			}
+		}
+
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("some error occured when monitor master: %w", err))
+			return
+		}
+
+		res, err := tx.Exec("INSERT INTO sentinel_masters (name, ip, port, quorum) VALUES (?, ?, ?, ?)",
+			body.MasterName, body.IP, body.Port, body.Quorum,
+		)
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("error when recording master: %w", err))
+			return
+		}
+
+		lastID, err := res.LastInsertId()
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
 
 		ctx.JSON(http.StatusOK, gin.H{
-			"msg":    fmt.Sprintf("Master %s has been successfully registered to sentinel", masterName),
+			"msg":    fmt.Sprintf("Master %s has been successfully registered to sentinel", body.MasterName),
+			"id":     lastID,
 			"errors": []string{},
 		})
 	}
@@ -199,7 +239,7 @@ func (h *handler) ClusterRemoveMasterHandler() gin.HandlerFunc {
 
 		sentinel, err := getSentinel(ctxTimeout, s.Hosts)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, fmt.Errorf("No successfull ping to all available sentinel hosts: %w", err))
+			ctx.JSON(http.StatusInternalServerError, fmt.Errorf("no successfull ping to all available sentinel hosts: %w", err))
 			return
 		}
 
