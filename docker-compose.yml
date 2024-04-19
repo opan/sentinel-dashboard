@@ -15,7 +15,7 @@ services:
       - '6379:6379'
     container_name: redis-01
 
-  redis-sentinel:
+  redis-sentinel-1:
     image: 'bitnami/redis-sentinel:latest'
     environment:
       - REDIS_MASTER_HOST=redis
@@ -24,3 +24,23 @@ services:
     networks:
       - app-tier
     container_name: sentinel-01
+
+  redis-sentinel-2:
+    image: 'bitnami/redis-sentinel:latest'
+    environment:
+      - REDIS_MASTER_HOST=redis
+    ports:
+      - '26379:26379'
+    networks:
+      - app-tier
+    container_name: sentinel-02
+
+  redis-sentinel-3:
+    image: 'bitnami/redis-sentinel:latest'
+    environment:
+      - REDIS_MASTER_HOST=redis
+    ports:
+      - '26379:26379'
+    networks:
+      - app-tier
+    container_name: sentinel-03
