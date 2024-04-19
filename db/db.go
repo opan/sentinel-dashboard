@@ -43,10 +43,10 @@ func (d *database) Migrate() {
 			ip TEXT NOT NULL,
 			port TEXT NOT NULL,
 			quorum TEXT NOT NULL,
-			options TEXT NOT NULL,
+			options TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY (sentinel_id)
-				REFERENCES sentinels
+			FOREIGN KEY (sentinel_id) REFERENCES sentinels,
+			UNIQUE (sentinel_id, name)
 		)
 	`
 
