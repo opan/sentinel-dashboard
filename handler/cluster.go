@@ -50,7 +50,7 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 
 		sentinel, err := getSentinel(ctxTimeout, s.Hosts)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, fmt.Errorf("No successfull ping to all available sentinel hosts: %w", err))
+			ctx.JSON(http.StatusInternalServerError, fmt.Errorf("no successfull ping to all available sentinel hosts: %w", err))
 			return
 		}
 
@@ -165,7 +165,7 @@ func (h *handler) ClusterAddMasterHandler() gin.HandlerFunc {
 				break
 			}
 
-			// result is returning "OK" for good response
+			// result should return "OK"
 			_, err := monCmd.Result()
 			if err != nil {
 				break
@@ -177,8 +177,8 @@ func (h *handler) ClusterAddMasterHandler() gin.HandlerFunc {
 			return
 		}
 
-		res, err := tx.Exec("INSERT INTO sentinel_masters (name, ip, port, quorum) VALUES (?, ?, ?, ?)",
-			body.MasterName, body.IP, body.Port, body.Quorum,
+		res, err := tx.Exec("INSERT INTO sentinel_masters (sentinel_id, name, ip, port, quorum) VALUES (?, ?, ?, ?, ?)",
+			id, body.MasterName, body.IP, body.Port, body.Quorum,
 		)
 		if err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("error when recording master: %w", err))
@@ -204,6 +204,10 @@ func (h *handler) ClusterAddMasterHandler() gin.HandlerFunc {
 		})
 	}
 }
+
+// func pingSentinels(ctx context.Context, hosts string) error {
+// 	return nil
+// }
 
 func (h *handler) ClusterRemoveMasterHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
