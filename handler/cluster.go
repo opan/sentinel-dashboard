@@ -95,6 +95,79 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 	}
 }
 
+func sentinelGetMasters(ctx context.Context, hosts string) ([]model.SentinelMaster, error) {
+	var masters []model.SentinelMaster
+	var cmdErr error
+
+	sh := strings.Split(hosts, ",")
+
+	for _, h := range sh {
+		cmd := redis.NewMapStringInterfaceSliceCmd(ctx, "sentinel", "masters")
+
+		sentinel := redis.NewSentinelClient(&redis.Options{Addr: h})
+
+		cmdErr = sentinel.Process(ctx, cmd)
+		if cmdErr != nil {
+			sentinel.Close()
+			break
+		}
+
+		sentinel.Close()
+	}
+
+	if cmdErr != nil {
+		return []model.SentinelMaster{}, cmdErr
+	}
+
+	return masters, nil
+}
+
+func (h *handler) ClusterReloadStateHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		dbx := h.dbConn.GetConnection()
+		id := ctx.Param("id")
+
+		var s model.Sentinel
+
+		err := dbx.Get(&s, "SELECT * FROM sentinels WHERE id = ?", id)
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"msg":    fmt.Sprintf("No record found with ID: %s", id),
+				"data":   nil,
+				"errors": []string{},
+			})
+			return
+		}
+
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("error get record: %w", err))
+			return
+		}
+
+		var pingErr error
+		sh := strings.Split(s.Hosts, ",")
+
+		// check if any of sentinel hosts failed at ping, cancel monitor process
+		for _, h := range sh {
+			sentinel := redis.NewSentinelClient(&redis.Options{
+				Addr: h,
+			})
+
+			pong, err := sentinel.Ping(ctx).Result()
+			if err != nil && pong != "PONG" {
+				pingErr = err
+				break
+			}
+		}
+
+		if pingErr != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("some error occured when doing ping to sentinel host: %w", pingErr))
+			return
+		}
+
+	}
+}
+
 func (h *handler) ClusterAddMasterHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()

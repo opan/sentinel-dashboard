@@ -25,6 +25,7 @@ func (h *handler) Router() *gin.Engine {
 
 	h.GinRouter.GET("/cluster/:id/info", h.ClusterInfoHandler())
 	h.GinRouter.POST("/cluster/:id/monitor", h.ClusterAddMasterHandler())
+	h.GinRouter.PUT("/cluster/:id/reload", h.ClusterReloadStateHandler())
 	h.GinRouter.DELETE("/cluster/:id/remove/:master_name", h.ClusterRemoveMasterHandler())
 
 	return h.GinRouter
