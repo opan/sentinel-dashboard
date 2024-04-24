@@ -97,6 +97,7 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 
 func sentinelGetMasters(ctx context.Context, hosts string) ([]model.SentinelMaster, error) {
 	var masters []model.SentinelMaster
+	var sentinelMasters map[string][]model.SentinelMaster
 	var cmdErr error
 
 	sh := strings.Split(hosts, ",")
@@ -111,6 +112,38 @@ func sentinelGetMasters(ctx context.Context, hosts string) ([]model.SentinelMast
 			sentinel.Close()
 			break
 		}
+
+		cr, cmdErr := cmd.Result()
+		if cmdErr != nil {
+			sentinel.Close()
+			break
+		}
+
+		var crErr error
+		for _, r := range cr {
+			var master model.SentinelMaster
+
+			dc := &mapstructure.DecoderConfig{
+				WeaklyTypedInput: true,
+				Result:           &master,
+			}
+
+			decode, crErr := mapstructure.NewDecoder(dc)
+			if crErr != nil {
+				break
+			}
+
+			decode.Decode(r)
+			masters = append(masters, master)
+		}
+
+		if crErr != nil {
+			cmdErr = crErr
+			sentinel.Close()
+			break
+		}
+
+		sentinelMasters[h] = masters
 
 		sentinel.Close()
 	}
