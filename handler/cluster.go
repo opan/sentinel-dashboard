@@ -97,63 +97,6 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 	}
 }
 
-func sentinelGetMasters(ctx context.Context, hosts []string) (sentinelListOfMasters, error) {
-	var cmdErr error
-
-	sentinelMasters := sentinelListOfMasters{}
-
-	for _, h := range hosts {
-		var masters []model.SentinelMaster
-		cmd := redis.NewMapStringInterfaceSliceCmd(ctx, "sentinel", "masters")
-
-		sentinel := redis.NewSentinelClient(&redis.Options{Addr: h})
-
-		cmdErr = sentinel.Process(ctx, cmd)
-		if cmdErr != nil {
-			sentinel.Close()
-			break
-		}
-
-		cr, cmdErr := cmd.Result()
-		if cmdErr != nil {
-			sentinel.Close()
-			break
-		}
-
-		for _, r := range cr {
-			var master model.SentinelMaster
-
-			dc := &mapstructure.DecoderConfig{
-				WeaklyTypedInput: true,
-				Result:           &master,
-			}
-
-			decode, err := mapstructure.NewDecoder(dc)
-			if err != nil {
-				cmdErr = err
-				break
-			}
-
-			decode.Decode(r)
-			masters = append(masters, master)
-		}
-
-		if cmdErr != nil {
-			sentinel.Close()
-			break
-		}
-
-		sentinelMasters[h] = masters
-		sentinel.Close()
-	}
-
-	if cmdErr != nil {
-		return sentinelMasters, cmdErr
-	}
-
-	return sentinelMasters, nil
-}
-
 func (h *handler) ClusterReloadStateHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
@@ -204,6 +147,17 @@ func (h *handler) ClusterReloadStateHandler() gin.HandlerFunc {
 		sentinelMasters, err := sentinelGetMasters(ctxTimeout, sh)
 		if err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("errors when fetch masters list: %w", err))
+			return
+		}
+
+		// compare total of the master for each host
+		// raise error when there is difference
+		mastersCount := make(map[int]int)
+		for _, s := range sentinelMasters {
+			mastersCount[len(s)] = len(s)
+		}
+		if len(mastersCount) > 1 {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("masters count is not equal for each sentinel host"))
 			return
 		}
 
@@ -414,4 +368,61 @@ func getSentinel(ctx context.Context, hosts string) (*redis.SentinelClient, erro
 	}
 
 	return sentinel, pingErr
+}
+
+func sentinelGetMasters(ctx context.Context, hosts []string) (sentinelListOfMasters, error) {
+	var cmdErr error
+
+	sentinelMasters := sentinelListOfMasters{}
+
+	for _, h := range hosts {
+		var masters []model.SentinelMaster
+		cmd := redis.NewMapStringInterfaceSliceCmd(ctx, "sentinel", "masters")
+
+		sentinel := redis.NewSentinelClient(&redis.Options{Addr: h})
+
+		cmdErr = sentinel.Process(ctx, cmd)
+		if cmdErr != nil {
+			sentinel.Close()
+			break
+		}
+
+		cr, cmdErr := cmd.Result()
+		if cmdErr != nil {
+			sentinel.Close()
+			break
+		}
+
+		for _, r := range cr {
+			var master model.SentinelMaster
+
+			dc := &mapstructure.DecoderConfig{
+				WeaklyTypedInput: true,
+				Result:           &master,
+			}
+
+			decode, err := mapstructure.NewDecoder(dc)
+			if err != nil {
+				cmdErr = err
+				break
+			}
+
+			decode.Decode(r)
+			masters = append(masters, master)
+		}
+
+		if cmdErr != nil {
+			sentinel.Close()
+			break
+		}
+
+		sentinelMasters[h] = masters
+		sentinel.Close()
+	}
+
+	if cmdErr != nil {
+		return sentinelMasters, cmdErr
+	}
+
+	return sentinelMasters, nil
 }
