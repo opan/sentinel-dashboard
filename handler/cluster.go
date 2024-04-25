@@ -22,6 +22,8 @@ func (e *ErrNoHealthySentinel) Error() string {
 	return fmt.Sprintf("No healthy redis sentinel. Hosts: %s", e.Msg)
 }
 
+type sentinelListOfMasters map[string][]model.SentinelMaster
+
 func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
@@ -95,14 +97,13 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 	}
 }
 
-func sentinelGetMasters(ctx context.Context, hosts string) ([]model.SentinelMaster, error) {
-	var masters []model.SentinelMaster
-	var sentinelMasters map[string][]model.SentinelMaster
+func sentinelGetMasters(ctx context.Context, hosts []string) (sentinelListOfMasters, error) {
 	var cmdErr error
 
-	sh := strings.Split(hosts, ",")
+	sentinelMasters := sentinelListOfMasters{}
 
-	for _, h := range sh {
+	for _, h := range hosts {
+		var masters []model.SentinelMaster
 		cmd := redis.NewMapStringInterfaceSliceCmd(ctx, "sentinel", "masters")
 
 		sentinel := redis.NewSentinelClient(&redis.Options{Addr: h})
@@ -119,7 +120,6 @@ func sentinelGetMasters(ctx context.Context, hosts string) ([]model.SentinelMast
 			break
 		}
 
-		var crErr error
 		for _, r := range cr {
 			var master model.SentinelMaster
 
@@ -128,8 +128,9 @@ func sentinelGetMasters(ctx context.Context, hosts string) ([]model.SentinelMast
 				Result:           &master,
 			}
 
-			decode, crErr := mapstructure.NewDecoder(dc)
-			if crErr != nil {
+			decode, err := mapstructure.NewDecoder(dc)
+			if err != nil {
+				cmdErr = err
 				break
 			}
 
@@ -137,22 +138,20 @@ func sentinelGetMasters(ctx context.Context, hosts string) ([]model.SentinelMast
 			masters = append(masters, master)
 		}
 
-		if crErr != nil {
-			cmdErr = crErr
+		if cmdErr != nil {
 			sentinel.Close()
 			break
 		}
 
 		sentinelMasters[h] = masters
-
 		sentinel.Close()
 	}
 
 	if cmdErr != nil {
-		return []model.SentinelMaster{}, cmdErr
+		return sentinelMasters, cmdErr
 	}
 
-	return masters, nil
+	return sentinelMasters, nil
 }
 
 func (h *handler) ClusterReloadStateHandler() gin.HandlerFunc {
@@ -177,6 +176,10 @@ func (h *handler) ClusterReloadStateHandler() gin.HandlerFunc {
 			return
 		}
 
+		// set 5s timeout when executing
+		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
 		var pingErr error
 		sh := strings.Split(s.Hosts, ",")
 
@@ -186,7 +189,7 @@ func (h *handler) ClusterReloadStateHandler() gin.HandlerFunc {
 				Addr: h,
 			})
 
-			pong, err := sentinel.Ping(ctx).Result()
+			pong, err := sentinel.Ping(ctxTimeout).Result()
 			if err != nil && pong != "PONG" {
 				pingErr = err
 				break
@@ -198,6 +201,16 @@ func (h *handler) ClusterReloadStateHandler() gin.HandlerFunc {
 			return
 		}
 
+		sentinelMasters, err := sentinelGetMasters(ctxTimeout, sh)
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("errors when fetch masters list: %w", err))
+			return
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{
+			"data":   sentinelMasters,
+			"errors": []string{},
+		})
 	}
 }
 
