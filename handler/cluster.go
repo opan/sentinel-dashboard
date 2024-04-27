@@ -82,7 +82,7 @@ func (h *handler) ClusterSyncStateHandler() gin.HandlerFunc {
 		}
 
 		if err != nil {
-			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("error get record: %w", err))
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("some error occured when get record: %w", err))
 			return
 		}
 
@@ -116,9 +116,19 @@ func (h *handler) ClusterSyncStateHandler() gin.HandlerFunc {
 			return
 		}
 
+		var sm []model.SentinelMaster
+
+		// get all masters stored in the db
+		err = dbx.Select(&sm, "SELECT * FROM sentinel_masters WHERE sentinel_id = ?", id)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured when fetching masters from db: %w", err))
+			return
+		}
+
 		ctx.JSON(http.StatusOK, gin.H{
-			"data":   sentinelMasters,
-			"errors": []string{},
+			"data":    sentinelMasters,
+			"masters": sm,
+			"errors":  []string{},
 		})
 	}
 }
@@ -299,7 +309,7 @@ func (h *handler) ClusterRemoveMasterHandler() gin.HandlerFunc {
 func sentinelGetMasters(ctx context.Context, hosts []string) (sentinelListOfMasters, error) {
 	var cmdErr error
 
-	sentinelMasters := sentinelListOfMasters{}
+	sentinelMasters := make(sentinelListOfMasters)
 
 	for _, h := range hosts {
 		var masters []model.SentinelMaster
