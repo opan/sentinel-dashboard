@@ -63,7 +63,8 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 	}
 }
 
-func (h *handler) ClusterReloadStateHandler() gin.HandlerFunc {
+// Handler to sync with the live state in sentinel clusters
+func (h *handler) ClusterSyncStateHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
 		id := ctx.Param("id")
