@@ -27,13 +27,13 @@ func main() {
 	dbConn := db.New(os.Getenv("DB_FILE_NAME"))
 	defer dbConn.Close()
 
-	fmt.Println("Run DB Migration")
+	log.Println("Run DB Migration")
 	dbConn.Migrate()
 
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	fmt.Println("Starting Sentinel Manager Server")
+	log.Println("Starting Sentinel Manager Server")
 	h := handler.New(dbConn)
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", os.Getenv("BACKEND_PORT")),
