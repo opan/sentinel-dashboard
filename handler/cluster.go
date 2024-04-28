@@ -140,6 +140,7 @@ func (h *handler) ClusterSyncStateHandler() gin.HandlerFunc {
 			return
 		}
 
+		// collect stale masters into a slice
 		var staleMasters []string
 		for rows.Next() {
 			var staleMaster model.SentinelMaster
@@ -157,30 +158,31 @@ func (h *handler) ClusterSyncStateHandler() gin.HandlerFunc {
 			return
 		}
 
-		tx, err := dbx.Beginx()
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, err)
-			return
-		}
-		defer tx.Rollback()
+		if len(staleMasters) > 0 {
+			txs, err := dbx.Beginx()
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, err)
+				return
+			}
+			defer txs.Rollback()
 
-		di, args, err := sqlx.In("DELETE FROM sentinel_masters WHERE sentinel_id = ? AND name IN (?)", id, staleMasters)
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured when constructing query: %w", err))
-			return
-		}
+			di, args, err := sqlx.In("DELETE FROM sentinel_masters WHERE sentinel_id = ? AND name IN (?)", id, staleMasters)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured when constructing query: %w", err))
+				return
+			}
+			di = dbx.Rebind(di)
+			_, err = txs.ExecContext(ctxTimeout, di, args...)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured when clean up stale master: %w", err))
+				return
+			}
 
-		di = dbx.Rebind(di)
-		_, err = tx.ExecContext(ctxTimeout, di, args...)
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured when clean up stale master: %w", err))
-			return
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, err)
-			return
+			err = txs.Commit()
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, err)
+				return
+			}
 		}
 
 		var syncErr error
