@@ -63,7 +63,11 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 	}
 }
 
-// Handler to sync with the live state in sentinel clusters
+// Handler to sync state stored in db with the live state
+// this will remove stale master stored in the db
+// the live state must have in balance state first
+// meaning all sentinel node have the same total masters monitored
+// any custom options set to the master will be reset
 func (h *handler) ClusterSyncStateHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
@@ -116,19 +120,53 @@ func (h *handler) ClusterSyncStateHandler() gin.HandlerFunc {
 			return
 		}
 
-		var sm []model.SentinelMaster
+		var syncErr error
 
-		// get all masters stored in the db
-		err = dbx.Select(&sm, "SELECT * FROM sentinel_masters WHERE sentinel_id = ?", id)
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured when fetching masters from db: %w", err))
+		// loop through masters from the first sentinel host
+		for _, s := range sentinelMasters[sh[0]] {
+			var syncState = func() error {
+				tx, err := dbx.Beginx()
+				if err != nil {
+					return err
+				}
+				defer tx.Rollback()
+
+				_, err = tx.Exec("DELETE FROM sentinel_masters WHERE sentinel_id = ? AND name = ?", id, s.MasterName)
+				if err != nil {
+					return err
+				}
+
+				_, err = tx.Exec("INSERT INTO sentinel_masters (sentinel_id, name, ip, port, quorum) VALUES (?, ?, ?, ?, ?)",
+					id, s.MasterName, s.IP, s.Port, s.Quorum)
+				if err != nil {
+					return err
+				}
+
+				err = tx.Commit()
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}
+
+			err = syncState()
+			if err != nil {
+				syncErr = err
+				break
+			}
+		}
+
+		if syncErr != nil {
+			ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured while comparing the state: %w", err))
 			return
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{
-			"data":    sentinelMasters,
-			"masters": sm,
-			"errors":  []string{},
+			"data": sentinelMasters,
+			"msg":  "Sentinel cluster state has been successfully synced",
+			// "masters": sm,
+			"errors": []string{},
 		})
 	}
 }
