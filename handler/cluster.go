@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,10 +22,15 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
 		id := ctx.Param("id")
+		useDB, err := strconv.ParseBool(ctx.DefaultQuery("use_db", "false"))
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
 
 		var s model.Sentinel
 
-		err := dbx.Get(&s, "SELECT * FROM sentinels WHERE id = ?", id)
+		err = dbx.Get(&s, "SELECT * FROM sentinels WHERE id = ?", id)
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, gin.H{
 				"msg":    fmt.Sprintf("No record found with ID: %s", id),
@@ -48,6 +54,27 @@ func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 		err = sentinelHealthCheck(ctxTimeout, sh)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured during ping checking: %w", err))
+			return
+		}
+
+		if useDB {
+			var smdb []model.SentinelMaster
+
+			err = dbx.Select(&smdb, "SELECT * FROM sentinel_masters WHERE sentinel_id = ?", id)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured when fetching masters: %w", err))
+				return
+			}
+
+			som := make(sentinelListOfMasters)
+			for _, h := range sh {
+				som[h] = smdb
+			}
+
+			ctx.JSON(http.StatusOK, gin.H{
+				"data":   som,
+				"errors": []string{},
+			})
 			return
 		}
 
