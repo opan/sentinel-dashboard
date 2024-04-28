@@ -297,8 +297,8 @@ func (h *handler) ClusterAddMasterHandler() gin.HandlerFunc {
 			}
 
 			// result should return "OK"
-			_, err := monCmd.Result()
-			if err != nil {
+			cmdRes, err := monCmd.Result()
+			if err != nil || cmdRes != "OK" {
 				break
 			}
 		}
