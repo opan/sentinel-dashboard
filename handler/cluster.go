@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/mitchellh/mapstructure"
 	"github.com/redis/go-redis/v9"
 	"github.com/sentinel-manager/model"
@@ -120,6 +121,68 @@ func (h *handler) ClusterSyncStateHandler() gin.HandlerFunc {
 			return
 		}
 
+		var mastersName []string
+
+		for _, m := range sentinelMasters[sh[0]] {
+			mastersName = append(mastersName, m.MasterName)
+		}
+
+		qi, args, err := sqlx.In("SELECT * FROM sentinel_masters WHERE sentinel_id = ? AND name NOT IN (?)", id, mastersName)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+
+		qi = dbx.Rebind(qi)
+		rows, err := dbx.QueryxContext(ctxTimeout, qi, args...)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+
+		var staleMasters []string
+		for rows.Next() {
+			var staleMaster model.SentinelMaster
+			err = rows.StructScan(&staleMaster)
+			if err != nil {
+				break
+			}
+
+			staleMasters = append(staleMasters, staleMaster.MasterName)
+		}
+
+		// err checking from for-loop
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+
+		tx, err := dbx.Beginx()
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+		defer tx.Rollback()
+
+		di, args, err := sqlx.In("DELETE FROM sentinel_masters WHERE sentinel_id = ? AND name IN (?)", id, staleMasters)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured when constructing query: %w", err))
+			return
+		}
+
+		di = dbx.Rebind(di)
+		_, err = tx.ExecContext(ctxTimeout, di, args...)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, fmt.Errorf("some error occured when clean up stale master: %w", err))
+			return
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+
 		var syncErr error
 
 		// loop through masters from the first sentinel host
@@ -163,9 +226,8 @@ func (h *handler) ClusterSyncStateHandler() gin.HandlerFunc {
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{
-			"data": sentinelMasters,
-			"msg":  "Sentinel cluster state has been successfully synced",
-			// "masters": sm,
+			"data":   sentinelMasters,
+			"msg":    "Sentinel cluster state has been successfully synced",
 			"errors": []string{},
 		})
 	}
