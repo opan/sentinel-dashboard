@@ -1,7 +1,8 @@
+import { RedirectStatusCode } from "next/dist/client/components/redirect-status-code"
 import { Sentinel, columns } from "./sentinel-columns"
 import { DataTable } from "./sentinel-data-table"
 
-export async function getSentinel() {
+async function getSentinel(): Promise<Sentinel[]> {
   const apiUrl = process.env.API_URL
   const res = await fetch(apiUrl + "/sentinel")
 
@@ -9,15 +10,17 @@ export async function getSentinel() {
     throw new Error('Failed to fetch data')
   }
 
-  return res.json()
+  const resData = await res.json()
+
+  return resData.data
 }
 
 export default async function Home() {
-  const sentinel = await getSentinel()
+  const data = await getSentinel()
 
   return (
     <div className="container mx-auto py-10">
-      <DataTable columns={columns} data={sentinel.data}/>
+      <DataTable columns={columns} data={data}/>
     </div>
   )
 }

@@ -13,7 +13,7 @@ export type Sentinel = {
  
 export const columns: ColumnDef<Sentinel>[] = [
   {
-    accessorKey: "ID",
+    accessorKey: "id",
     header: "ID"
   },
   {
@@ -24,4 +24,8 @@ export const columns: ColumnDef<Sentinel>[] = [
     accessorKey: "hosts",
     header: "Hosts",
   },
+  {
+    accessorKey: "created_at",
+    header: "Created At"
+  }
 ]
