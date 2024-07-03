@@ -22,7 +22,16 @@ export const columns: ColumnDef<Sentinel>[] = [
   },
   {
     accessorKey: "hosts",
-    header: "Hosts",
+    header: () => <div className="text-left">Sentinel Hosts</div>,
+    cell: ({row}) => {
+      const hosts = (row.getValue("hosts") as string).split(',')
+      
+      return <div>
+        {hosts.map((host, i) => (
+          <span className="font-bold mr-1 border p-1" key={i}>{host}</span>
+        ))}
+      </div>
+    }
   },
   {
     accessorKey: "created_at",
