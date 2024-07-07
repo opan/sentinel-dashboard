@@ -1,5 +1,7 @@
 'use client'
 
+import Link from "next/link";
+
 import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
@@ -40,10 +42,16 @@ export const columns: ColumnDef<Sentinel>[] = [
   {
     accessorKey: "name",
     header: "Name",
+    cell: ({row}) => {
+      const sentinel = row.original
+      return (
+        <Link href={"#"}>{sentinel.name}</Link>
+      )
+    }
   },
   {
     accessorKey: "hosts",
-    header: () => <div className="text-left">Sentinel Hosts</div>,
+    header: "Sentinel Hosts",
     cell: ({row}) => {
       const hosts = (row.getValue("hosts") as string).split(',')
       
