@@ -170,8 +170,21 @@ func (h *handler) RemoveSentinelHandler() gin.HandlerFunc {
 			return
 		}
 
-		tx.ExecContext(ctxTimeout, "DELETE FROM sentinel_masters WHERE sentinel_id = ?", id)
-		tx.ExecContext(ctxTimeout, "DELETE FROM sentinels WHERE id = ?", id)
+		defer tx.Rollback()
+		res, err := tx.ExecContext(ctxTimeout, "DELETE FROM sentinel_masters WHERE sentinel_id = ?", id)
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("errors removing sentinel masters: %w", err))
+			return
+		}
+
+		fmt.Println(res.RowsAffected())
+
+		res, err = tx.ExecContext(ctxTimeout, "DELETE FROM sentinels WHERE id = ?", id)
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("errors removing sentinels: %w", err))
+			return
+		}
+		fmt.Println(res.RowsAffected())
 
 		err = tx.Commit()
 		if err != nil {
