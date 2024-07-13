@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sentinel-manager/model"
@@ -133,6 +135,53 @@ func (h *handler) UpdateSentinelHandler() gin.HandlerFunc {
 			"msg":         "Record has been successfully updated",
 			"updated_row": ur,
 			"errors":      []string{},
+		})
+	}
+}
+
+func (h *handler) RemoveSentinelHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		dbx := h.dbConn.GetConnection()
+		id := ctx.Param("id")
+
+		var s model.Sentinel
+		err := dbx.Get(&s, "SELECT * FROM sentinels WHERE id = ?", id)
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"msg":    fmt.Sprintf("No record found with ID: %s", id),
+				"data":   nil,
+				"errors": []string{},
+			})
+			return
+		}
+
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("errors get records: %w", err))
+			return
+		}
+
+		// set 5s timeout when executing
+		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
+		tx, err := dbx.Beginx()
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("errors begin trx: %w", err))
+			return
+		}
+
+		tx.ExecContext(ctxTimeout, "DELETE FROM sentinel_masters WHERE sentinel_id = ?", id)
+		tx.ExecContext(ctxTimeout, "DELETE FROM sentinels WHERE id = ?", id)
+
+		err = tx.Commit()
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("errors comitting trx: %w", err))
+			return
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{
+			"msg":    fmt.Sprintln("Sentinel servers has been removed"),
+			"errors": []string{},
 		})
 	}
 }

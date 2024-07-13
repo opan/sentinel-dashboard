@@ -33,7 +33,19 @@ export type Sentinel = {
   hosts: string
   created_at: string
 }
- 
+
+async function removeSentinel(id: number) {
+  const res = await fetch(`/api/sentinel/${id}`, {
+    method: 'DELETE'
+  })
+
+  if (!res.ok) {
+    throw new Error("Failed to remove sentinel");
+  }
+
+  console.log('success remove sentinel')
+}
+
 export const columns: ColumnDef<Sentinel>[] = [
   {
     accessorKey: "id",
@@ -95,7 +107,7 @@ export const columns: ColumnDef<Sentinel>[] = [
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction asChild>
+                    <AlertDialogAction asChild onClick={() => removeSentinel(sentinel.id)}>
                       <button className="bg-red-400 hover:bg-primary/90">Remove</button>
                     </AlertDialogAction>
                   </AlertDialogFooter>

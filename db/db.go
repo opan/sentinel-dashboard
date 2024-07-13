@@ -31,10 +31,11 @@ func (d *database) Close() {
 func (d *database) Migrate() {
 	sqlQuery := `
 		CREATE TABLE IF NOT EXISTS sentinels (
-		id INTEGER NOT NULL PRIMARY KEY,
-		name TEXT NOT NULL,
-		hosts TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+			id INTEGER NOT NULL PRIMARY KEY,
+			name TEXT NOT NULL,
+			hosts TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);
 
 		CREATE TABLE IF NOT EXISTS sentinel_masters (
 			id INTEGER NOT NULL PRIMARY KEY,

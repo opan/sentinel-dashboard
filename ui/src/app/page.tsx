@@ -1,6 +1,6 @@
-import { RedirectStatusCode } from "next/dist/client/components/redirect-status-code"
+// import { RedirectStatusCode } from "next/dist/client/components/redirect-status-code"
 import { Sentinel, columns } from "./sentinel-columns"
-import { DataTable } from "./sentinel-data-table"
+import { DataTable } from "../components/ui/data-table"
 
 async function getSentinel(): Promise<Sentinel[]> {
   const apiUrl = process.env.API_URL

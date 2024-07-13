@@ -22,6 +22,7 @@ func (h *handler) Router() *gin.Engine {
 	h.GinRouter.GET("/sentinel/:id", h.GetSentinelHandler())
 	h.GinRouter.GET("/sentinel", h.GetSentinelHandler())
 	h.GinRouter.PATCH("/sentinel/:id", h.UpdateSentinelHandler())
+	h.GinRouter.DELETE("/sentinel/:id", h.RemoveSentinelHandler())
 
 	h.GinRouter.GET("/cluster/:id/info", h.ClusterInfoHandler())
 	h.GinRouter.POST("/cluster/:id/monitor", h.ClusterAddMasterHandler())
