@@ -8,5 +8,5 @@ test:
 
 
 dev-ui-run:
-	cd ui/sentinel-manager-ui
-	npm run dev
+	cd ui
+	yarn run dev
