@@ -18,6 +18,7 @@ import (
 
 type sentinelListOfMasters map[string][]model.SentinelMaster
 
+// Get all clusters or specific cluster info by :id
 func (h *handler) ClusterInfoHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
@@ -262,6 +263,8 @@ func (h *handler) ClusterSyncStateHandler() gin.HandlerFunc {
 	}
 }
 
+// Register new master to specific master by :id
+// inputs: sentinel_id, name, ip, port, quorum
 func (h *handler) ClusterAddMasterHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
@@ -363,6 +366,7 @@ func (h *handler) ClusterAddMasterHandler() gin.HandlerFunc {
 	}
 }
 
+// Remove master from a cluster by :id and :master_name
 func (h *handler) ClusterRemoveMasterHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
