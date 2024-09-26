@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: number }}
+export async function GET(
+  request: NextRequest
 ) {
   const apiUrl = process.env.API_URL
-  const id = params.id
-  const res = await fetch(apiUrl + `/sentinel/${id}`,{
-    method: 'DELETE',
+  const res = await fetch(apiUrl + `/sentinel`,{
+    method: 'GET',
+    next: { revalidate: 360 },
     headers: {
       'Content-Type': 'application/json'
     }

@@ -1,26 +1,42 @@
-// import { RedirectStatusCode } from "next/dist/client/components/redirect-status-code"
-import { Sentinel, columns } from "./sentinel-columns"
-import { DataTable } from "../components/ui/data-table"
+'use client'
+// import { SentinelTable }  from "./sentinel-table"
 
-async function getSentinel(): Promise<Sentinel[]> {
-  const apiUrl = process.env.API_URL
-  const res = await fetch(apiUrl + "/sentinel")
+import { Sentinel, columns } from "./sentinel-columns";
+import { DataTable } from "../components/ui/data-table";
+import { useEffect, useState } from "react"
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch data')
-  }
+// async function getSentinel(): Promise<Sentinel[]> {
+//   const res = await fetch(`/api/sentinel`)
 
-  const resData = await res.json()
+//   if (!res.ok) {
+//     throw new Error("Failed to remove sentinel");
+//   }
 
-  return resData.data
-}
+//   const data = await res.json()
+//   return data
+// }
 
-export default async function Home() {
-  const data = await getSentinel()
+const Home = () => {
+  const [data, setData] = useState<Sentinel[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await fetch(`/api/sentinel`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to load Sentinel')
+      }
+
+      const jsonRes = await response.json()
+      setData(jsonRes.data)
+    }
+
+    fetchData()
+  }, [])
 
   return (
-    <div className="container mx-auto py-10">
-      <DataTable columns={columns} data={data}/>
-    </div>
+    <DataTable columns={columns} data={data}/>
   )
 }
+
+export default Home;
