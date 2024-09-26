@@ -7,6 +7,6 @@ test:
 	go test ./...
 
 
+
 dev-ui-run:
-	cd ui
-	yarn run dev
+	cd ui; yarn install; yarn run dev;
