@@ -19,10 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="grid grid-flow-col auto-cols-max m-10 gap-y-5">
-          <div>
-            <span className="text-2xl">Sentinel Manager</span>
-          </div>
+        <div className="grid grid-flow-col auto-cols-max m-5">
           <MainNav />
         </div>
         <div className="container mx-auto">

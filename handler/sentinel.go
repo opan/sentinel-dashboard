@@ -11,6 +11,7 @@ import (
 	"github.com/sentinel-manager/model"
 )
 
+// CreateSentinelHandler is a handler to create a new sentinel server
 func (h *handler) CreateSentinelHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		dbx := h.dbConn.GetConnection()
