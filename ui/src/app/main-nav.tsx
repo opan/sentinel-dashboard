@@ -56,9 +56,9 @@ export default function MainNav() {
       })
 
       if (response.ok) {
-
         // reset form
         setFormData({ name: "", hosts: "" })
+        setIsOpen(false)
         console.log('Sentinel Cluster created successfully', response)
       } else {
         throw new Error('Failed to create Sentinel Cluster')
@@ -98,7 +98,7 @@ export default function MainNav() {
           Hostname must be filled with comma separated values, e.g: 10.12.13.14:26379,10.12.14.15:26379
         </DialogDescription>
 
-        <form onSubmit={handleSubmit} id="create-sentinel-cluster">
+        <form onSubmit={handleSubmit} id="add-sentinel-cluster">
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">Name</Label>
