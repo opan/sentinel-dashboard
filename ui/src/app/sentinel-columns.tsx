@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
- 
+
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
 export type Sentinel = {
@@ -35,15 +35,17 @@ export type Sentinel = {
 }
 
 async function removeSentinel(id: number) {
-  const res = await fetch(`/api/sentinel/${id}`, {
-    method: 'DELETE'
-  })
+  try {
+    const res = await fetch(`/api/sentinel/${id}`, {
+      method: 'DELETE'
+    })
 
-  if (!res.ok) {
-    throw new Error("Failed to remove sentinel");
+    if (!res.ok) {
+      throw new Error("Failed to remove sentinel");
+    }
+  } catch (error) {
+    console.error("Error while removing sentinel: ", error)
   }
-
-  console.log('success remove sentinel')
 }
 
 export const columns: ColumnDef<Sentinel>[] = [
@@ -54,7 +56,7 @@ export const columns: ColumnDef<Sentinel>[] = [
   {
     accessorKey: "name",
     header: "Name",
-    cell: ({row}) => {
+    cell: ({ row }) => {
       const sentinel = row.original
       return (
         <Link href={"#"}>{sentinel.name}</Link>
@@ -64,9 +66,9 @@ export const columns: ColumnDef<Sentinel>[] = [
   {
     accessorKey: "hosts",
     header: "Sentinel Hosts",
-    cell: ({row}) => {
+    cell: ({ row }) => {
       const hosts = (row.getValue("hosts") as string).split(',')
-      
+
       return (
         <div>
           {hosts.map((host, i) => (
@@ -81,26 +83,27 @@ export const columns: ColumnDef<Sentinel>[] = [
     header: "Created At"
   },
   {
-    id: "action",
+    id: "actions",
     cell: ({ row }) => {
       const sentinel = row.original
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-              <AlertDialog>
+
+        <AlertDialog>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                 <AlertDialogTrigger>Remove</AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Remove this sentinel: { sentinel.name }?</AlertDialogTitle>
+                    <AlertDialogTitle>Remove this sentinel: {sentinel.name}?</AlertDialogTitle>
                     <AlertDialogDescription>
                       This action cannot be undone. This will permanently remove the selected Sentinel servers from database
                     </AlertDialogDescription>
@@ -112,10 +115,10 @@ export const columns: ColumnDef<Sentinel>[] = [
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
-              </AlertDialog>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>       
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </AlertDialog>
       )
     }
   }
