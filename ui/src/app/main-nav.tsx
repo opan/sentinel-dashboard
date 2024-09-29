@@ -23,12 +23,14 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 
 
 export default function MainNav() {
 
   const [isOpen, setIsOpen] = React.useState(false)
   const [formData, setFormData] = React.useState({ name: "", hosts: "" })
+  const { toast } = useToast()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -39,8 +41,6 @@ export default function MainNav() {
     e.preventDefault()
 
     const target = e.target as HTMLElement
-
-    console.log('Form submitted: ', formData)
 
     try {
       const response = await fetch(`/api/sentinel`, {
@@ -55,12 +55,21 @@ export default function MainNav() {
         // reset form
         setFormData({ name: "", hosts: "" })
         setIsOpen(false)
-        console.log('Sentinel Cluster created successfully', response)
+
+        toast({
+          description: 'Sentinel Cluster created successfully'
+        })
       } else {
         throw new Error('Failed to create Sentinel Cluster')
       }
     } catch (error) {
-      console.error(`Error while submitting form ${target.id}: `, error)
+      const errMsg = 'Error while submitting form'
+      console.error(`${errMsg} ${target.id}: `, error)
+      toast({
+        title: 'Error',
+        description: `${errMsg}`,
+        variant: 'destructive'
+      })
     }
   }
 
