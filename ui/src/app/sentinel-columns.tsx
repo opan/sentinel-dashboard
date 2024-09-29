@@ -24,6 +24,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
+import React from "react";
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
@@ -48,7 +50,7 @@ async function removeSentinel(id: number) {
   }
 }
 
-export const columns: ColumnDef<Sentinel>[] = [
+export const columns = (setData: React.Dispatch<React.SetStateAction<Sentinel[]>>): ColumnDef<Sentinel>[] => [
   {
     accessorKey: "id",
     header: "ID"
@@ -86,6 +88,25 @@ export const columns: ColumnDef<Sentinel>[] = [
     id: "actions",
     cell: ({ row }) => {
       const sentinel = row.original
+      const { toast } = useToast()
+      const errMsg = 'Error when removing Sentinel'
+
+      const handleRemove = async () => {
+        try {
+          await removeSentinel(sentinel.id)
+          setData((prevData) => prevData.filter((item) => item.id != sentinel.id))
+          toast({
+            description: 'Sentinel has been removed'
+          })
+        } catch (error) {
+          console.error(`${errMsg}: `, error)
+          toast({
+            title: 'Error',
+            description: errMsg,
+            variant: 'destructive'
+          })
+        }
+      }
 
       return (
 
@@ -110,7 +131,7 @@ export const columns: ColumnDef<Sentinel>[] = [
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction asChild onClick={() => removeSentinel(sentinel.id)}>
+                    <AlertDialogAction asChild onClick={handleRemove}>
                       <button className="bg-red-400 hover:bg-primary/90">Remove</button>
                     </AlertDialogAction>
                   </AlertDialogFooter>
