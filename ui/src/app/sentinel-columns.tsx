@@ -36,7 +36,7 @@ export type Sentinel = {
   created_at: string
 }
 
-async function removeSentinel(id: number) {
+async function handleDeleteSentinel(id: number) {
   try {
     const res = await fetch(`/api/sentinel/${id}`, {
       method: 'DELETE'
@@ -50,7 +50,7 @@ async function removeSentinel(id: number) {
   }
 }
 
-export const columns = (setData: React.Dispatch<React.SetStateAction<Sentinel[]>>): ColumnDef<Sentinel>[] => [
+export const columns = (deleteSentinel: any): ColumnDef<Sentinel>[] => [
   {
     accessorKey: "id",
     header: "ID"
@@ -93,8 +93,8 @@ export const columns = (setData: React.Dispatch<React.SetStateAction<Sentinel[]>
 
       const handleRemove = async () => {
         try {
-          await removeSentinel(sentinel.id)
-          setData((prevData) => prevData.filter((item) => item.id != sentinel.id))
+          await handleDeleteSentinel(sentinel.id)
+          deleteSentinel(sentinel)
           toast({
             description: 'Sentinel has been removed'
           })

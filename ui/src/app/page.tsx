@@ -36,8 +36,12 @@ const Home = () => {
     fetchData()
   }, [])
 
+  const deleteSentinel = (sentinel: Sentinel) => {
+    setData((prevData) => prevData.filter((item) => item.id != sentinel.id))
+  }
+
   return (
-    <DataTable columns={columns(setData)} data={data} />
+    <DataTable columns={columns(deleteSentinel)} data={data} />
   )
 }
 
