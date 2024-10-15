@@ -16,7 +16,7 @@ export async function GET(
   return NextResponse.json(jsonRes)
 }
 
-export async function POST( request: NextRequest) {
+export async function POST(request: NextRequest) {
   const apiUrl = process.env.API_URL
   const res = await fetch(apiUrl + `/sentinel`,{
     method: 'POST',
