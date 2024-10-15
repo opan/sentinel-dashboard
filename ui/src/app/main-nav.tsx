@@ -24,14 +24,14 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { SharedContext } from './shared-context';
+import { SentinelContext } from './sentinel-context';
 import { Sentinel } from './sentinel-columns'
 
 export default function MainNav() {
   const [isOpen, setIsOpen] = React.useState(false)
   const [formData, setFormData] = React.useState({ name: "", hosts: "" })
   const { toast } = useToast()
-  const { sharedData, setSharedData } = React.useContext(SharedContext)
+  const { sentinelContext, setSentinelContext } = React.useContext(SentinelContext)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -62,7 +62,7 @@ export default function MainNav() {
           created_at: Date.now().toString()
         }
 
-        setSharedData([...sharedData, newSentinel])
+        setSentinelContext([...sentinelContext, newSentinel])
 
         // reset form
         setFormData({ name: "", hosts: "" })
