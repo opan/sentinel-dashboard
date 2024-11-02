@@ -5,7 +5,7 @@ import { Sentinel, columns } from "./sentinel-columns";
 import { DataTable } from "../components/ui/data-table";
 import { useEffect, useState } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { SentinelContext } from './sentinel-context';
+import { SentinelContext } from '../contexts/sentinel-context';
 
 const Home = () => {
   // const [data, setData] = useState<Sentinel[]>([])
@@ -42,7 +42,6 @@ const Home = () => {
   }, [])
 
   const deleteSentinel = (sentinel: Sentinel) => {
-    // setData((prevData) => prevData.filter((item) => item.id != sentinel.id))
     setSentinelContext((prevData) => prevData.filter((item) => item.id != sentinel.id))
   }
 

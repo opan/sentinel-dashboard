@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { SentinelContext } from './sentinel-context';
+import { SentinelContext } from '../contexts/sentinel-context';
 import { Sentinel } from './sentinel-columns'
 
 export default function MainNav() {

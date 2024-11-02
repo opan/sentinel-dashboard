@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useState } from "react";
-import { Sentinel } from "./sentinel-columns";
+import { Sentinel } from "../app/sentinel-columns";
 
 interface SharedContextProps {
   sentinelContext: Sentinel[];

@@ -4,7 +4,7 @@ import "./globals.css";
 import "./main-nav";
 import MainNav from "./main-nav";
 import { Toaster } from "@/components/ui/toaster"
-import { SentinelContextProvider } from './sentinel-context';
+import { SentinelContextProvider } from '../contexts/sentinel-context';
 
 const inter = Inter({ subsets: ["latin"] });
 
